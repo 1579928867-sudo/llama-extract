@@ -7,32 +7,21 @@ jobs:
   extract:
     runs-on: ubuntu-22.04
     steps:
-      - name: Pull and find binary
+      - name: Pull image
+        run: docker pull ezforever/llama.cpp-static:server-ssl-avx2
+
+      - name: Export container filesystem
         run: |
-          # 拉取镜像
-          docker pull ezforever/llama.cpp-static:server-ssl-avx2
-          
-          # 创建容器
+          # 创建容器但不启动
           docker create --name tmp ezforever/llama.cpp-static:server-ssl-avx2
-          
-          # 在容器内部查找 llama-server 的真实路径
-          docker run --rm --entrypoint sh ezforever/llama.cpp-static:server-ssl-avx2 -c 'find / -name llama-server -type f' > paths.txt
-          
-          echo "找到的路径如下："
-          cat paths.txt
-          
-          # 取第一行路径
-          path=$(head -n1 paths.txt)
-          
-          if [ -z "$path" ]; then
-            echo "错误：在镜像中没有找到 llama-server 文件"
-            exit 1
-          fi
-          
-          # 从容器中复制文件
-          docker cp "tmp:$path" ./llama-server
+          # 将容器文件系统导出为 tar 包
+          docker export tmp -o container.tar
+          # 从 tar 包中查找并提取 llama-server 文件
+          tar -xvf container.tar --wildcards '*llama-server'
+          # 查找提取出来的文件，确认位置
+          find . -name "llama-server" -type f
+          # 清理临时容器
           docker rm tmp
-          ls -lh ./llama-server
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
