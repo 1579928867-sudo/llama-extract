@@ -1,0 +1,22 @@
+name: Extract llama-server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull and extract
+        run: |
+          docker pull ezforever/llama.cpp-static:server-ssl-avx2
+          docker create --name tmp ezforever/llama.cpp-static:server-ssl-avx2
+          docker cp tmp:/app/llama-server ./llama-server
+          docker rm tmp
+          ls -lh ./llama-server
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: llama-server
+          path: llama-server
