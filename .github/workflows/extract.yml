@@ -5,13 +5,32 @@ on:
 
 jobs:
   extract:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - name: Pull and extract
+      - name: Pull and find binary
         run: |
+          # 拉取镜像
           docker pull ezforever/llama.cpp-static:server-ssl-avx2
+          
+          # 创建容器
           docker create --name tmp ezforever/llama.cpp-static:server-ssl-avx2
-          docker cp tmp:/app/llama-server ./llama-server
+          
+          # 在容器内部查找 llama-server 的真实路径
+          docker run --rm --entrypoint sh ezforever/llama.cpp-static:server-ssl-avx2 -c 'find / -name llama-server -type f' > paths.txt
+          
+          echo "找到的路径如下："
+          cat paths.txt
+          
+          # 取第一行路径
+          path=$(head -n1 paths.txt)
+          
+          if [ -z "$path" ]; then
+            echo "错误：在镜像中没有找到 llama-server 文件"
+            exit 1
+          fi
+          
+          # 从容器中复制文件
+          docker cp "tmp:$path" ./llama-server
           docker rm tmp
           ls -lh ./llama-server
 
